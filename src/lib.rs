@@ -1,7 +1,6 @@
 use std::cell::Cell;
 
-const MAZE_WIDTH: usize = 3;
-const MAZE_HEIGHT: usize = 2;
+
 
 const BIT_UPPER: u8 = 0b0000_0001;
 const BIT_RIGHT: u8 = 0b0000_0010;
@@ -12,46 +11,68 @@ const BIT_LEFT: u8 = 0b0000_1000;
 type Position = usize;
 
 pub struct Maze {
+    pub width:usize,
+    pub height:usize,
     pub start_position: Position,
     pub goal_position: Position,
-    pub tiles: [Tile; MAZE_HEIGHT * MAZE_WIDTH],
+    pub tiles: Vec<Tile>,
 }
 // origin is left top
 impl Maze {
     pub fn flood_fill(&self) {
         let mut stack = vec![];
         let start = &self.tiles[self.goal_position];
-        start.value.set(0);
+        start.value.set(Some(0));
         stack.push(start);
         while let Some(tile) = stack.pop() {
             let pos = tile.position;
-            let pos_x = pos % MAZE_WIDTH;
-            let pos_y = pos / MAZE_WIDTH;
-            if pos_x < MAZE_WIDTH - 1 && tile.right {
+            let pos_x = pos % self.width;
+            let pos_y = pos / self.width;
+            if pos_x < self.width - 1 && tile.right {
                 let right = &self.tiles[pos + 1];
-                if right.value.get() > tile.value.get() + 1 {
-                    right.value.set(tile.value.get() + 1);
+                if let Some(value) = right.value.get() {
+                    if value + 1 < tile.value.get().unwrap() {
+                        tile.value.set(Some(value + 1));
+                        stack.push(tile);
+                    }
+                } else {
+                    right.value.set(Some(tile.value.get().unwrap()+1));
                     stack.push(right);
                 }
             };
             if pos_x > 0 && tile.left {
                 let left = &self.tiles[pos - 1];
-                if left.value.get() > tile.value.get() + 1 {
-                    left.value.set(tile.value.get() + 1);
+                if let Some(value) = left.value.get() {
+                    if value + 1 < tile.value.get().unwrap() {
+                        tile.value.set(Some(value + 1));
+                        stack.push(tile);
+                    }
+                } else {
+                    left.value.set(Some(tile.value.get().unwrap()+1));
                     stack.push(left);
                 }
             };
-            if pos_y < MAZE_HEIGHT - 1 && tile.lower {
-                let lower = &self.tiles[pos + MAZE_WIDTH];
-                if lower.value.get() > tile.value.get() + 1 {
-                    lower.value.set(tile.value.get() + 1);
+            if pos_y < self.width - 1 && tile.lower {
+                let lower = &self.tiles[pos + self.width];
+                if let Some(value) = lower.value.get() {
+                    if value + 1 < tile.value.get().unwrap() {
+                        tile.value.set(Some(value + 1));
+                        stack.push(tile);
+                    }
+                } else {
+                    lower.value.set(Some(tile.value.get().unwrap()+1));
                     stack.push(lower);
                 }
             };
             if pos_y > 0 && tile.upper {
-                let upper = &self.tiles[pos - MAZE_WIDTH];
-                if upper.value.get() > tile.value.get() + 1 {
-                    upper.value.set(tile.value.get() + 1);
+                let upper = &self.tiles[pos - self.width];
+                if let Some(value) = upper.value.get() {
+                    if value + 1 < tile.value.get().unwrap() {
+                        tile.value.set(Some(value + 1));
+                        stack.push(tile);
+                    }
+                } else {
+                    upper.value.set(Some(tile.value.get().unwrap()+1));
                     stack.push(upper);
                 }
             };
@@ -65,38 +86,47 @@ impl Maze {
         let mut tile = &self.tiles[self.start_position];
         while tile.position != self.goal_position {
             let pos = tile.position;
-            let pos_x = pos % MAZE_WIDTH;
-            let pos_y = pos / MAZE_WIDTH;
-            if pos_x < MAZE_WIDTH - 1 && tile.right {
+            let pos_x = pos % self.width;
+            let pos_y = pos / self.width;
+            if pos_x < self.width - 1 && tile.right {
                 let right = &self.tiles[pos + 1];
-                if right.value.get() == tile.value.get() - 1 {
-                    tile = right;
-                    solution.push(tile.position);
-                    continue;
+                if let Some(value) = right.value.get() {
+                    if value + 1 == tile.value.get().unwrap() {
+                        solution.push(pos + 1);
+                        tile = right;
+                        continue;
+                    }
                 }
+               
             };
             if pos_x > 0 && tile.left {
                 let left = &self.tiles[pos - 1];
-                if left.value.get() == tile.value.get() - 1 {
-                    tile = left;
-                    solution.push(tile.position);
-                    continue;
+                if let Some(value) = left.value.get() {
+                    if value + 1 == tile.value.get().unwrap() {
+                        solution.push(pos - 1);
+                        tile = left;
+                        continue;
+                    }
                 }
             };
-            if pos_y < MAZE_HEIGHT - 1 && tile.lower {
-                let lower = &self.tiles[pos + MAZE_WIDTH];
-                if lower.value.get() == tile.value.get() - 1 {
-                    tile = lower;
-                    solution.push(tile.position);
-                    continue;
+            if pos_y < self.width - 1 && tile.lower {
+                let lower = &self.tiles[pos + self.width];
+                if let Some(value) = lower.value.get() {
+                    if value + 1 == tile.value.get().unwrap() {
+                        solution.push(pos + self.width);
+                        tile = lower;
+                        continue;
+                    }
                 }
             };
             if pos_y > 0 && tile.upper {
-                let upper = &self.tiles[pos - MAZE_WIDTH];
-                if upper.value.get() == tile.value.get() - 1 {
-                    tile = upper;
-                    solution.push(tile.position);
-                    continue;
+                let upper = &self.tiles[pos - self.width];
+                if let Some(value) = upper.value.get() {
+                    if value + 1 == tile.value.get().unwrap() {
+                        solution.push(pos - self.width);
+                        tile = upper;
+                        continue;
+                    }
                 }
             };
         };
@@ -114,7 +144,7 @@ pub struct Tile {
     pub left: bool,
     pub right: bool,
     /// cell value in flood fill algorithm
-    pub value: Cell<usize>,
+    pub value: Cell<Option<usize>>,
 }
 
 impl Tile {
@@ -128,7 +158,7 @@ impl Tile {
             lower: openings & BIT_LOWER > 0,
             left: openings & BIT_LEFT > 0,
             right: openings & BIT_RIGHT > 0,
-            value: Cell::new(MAZE_HEIGHT * MAZE_WIDTH),
+            value: Cell::new(None),
         }
     }
 }
@@ -149,9 +179,11 @@ mod test {
             Tile::new(5, 9),
         ];
         let maze = Maze {
+            width:3,
+            height:2,
             start_position: 3,
             goal_position: 2,
-            tiles,
+            tiles:tiles.into(),
         };
         maze.flood_fill();
         assert_eq!(maze.solve(),vec![3,0,1,4,5,2]);
