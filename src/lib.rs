@@ -2,10 +2,10 @@ use std::cell::Cell;
 
 
 
-const BIT_UPPER: u8 = 0b0000_0001;
-const BIT_RIGHT: u8 = 0b0000_0010;
-const BIT_LOWER: u8 = 0b0000_0100;
-const BIT_LEFT: u8 = 0b0000_1000;
+const BIT_UPPER: u8 = 1;
+const BIT_RIGHT: u8 = 2;
+const BIT_LOWER: u8 = 4;
+const BIT_LEFT: u8 = 8;
 
 /// position of the tile. starts from 0, left to right then top to bottom
 type Position = usize;
@@ -186,6 +186,7 @@ mod test {
             tiles:tiles.into(),
         };
         maze.flood_fill();
-        assert_eq!(maze.solve(),vec![3,0,1,4,5,2]);
+        let solution = maze.solve();
+        assert_eq!(solution,vec![3,0,1,4,5,2]);
     }
 }
