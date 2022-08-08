@@ -1,4 +1,4 @@
-use std::cell::{Cell, Ref, RefCell};
+use std::cell::Cell;
 
 const MAZE_WIDTH: usize = 3;
 const MAZE_HEIGHT: usize = 2;
@@ -8,46 +8,50 @@ const BIT_RIGHT: u8 = 0b0000_0010;
 const BIT_LOWER: u8 = 0b0000_0100;
 const BIT_LEFT: u8 = 0b0000_1000;
 
+/// position of the tile. starts from 0, left to right then top to bottom
+type Position = usize;
+
 pub struct Maze {
-    pub start_point: Position,
-    pub goal: Position,
-    pub tiles: RefCell<[Tile; MAZE_HEIGHT * MAZE_WIDTH]>,
+    pub start_position: Position,
+    pub goal_position: Position,
+    pub tiles: [Tile; MAZE_HEIGHT * MAZE_WIDTH],
 }
 // origin is left top
 impl Maze {
     pub fn flood_fill(&self) {
-        let mut stack: Vec<Tile> = vec![];
-        let mut start = self.get_tile_at(&self.goal);
-        start.value = 0;
+        let mut stack = vec![];
+        let start = &self.tiles[self.goal_position];
+        start.value.set(0);
         stack.push(start);
         while let Some(tile) = stack.pop() {
-            let pos = &tile.position;
-            dbg!(pos);
-            if pos.x < MAZE_WIDTH - 1 && tile.right {
-                let mut right = self.get_tile_at(&Position::new(pos.x + 1, pos.y));
-                if right.value > tile.value + 1 {
-                    right.value = tile.value + 1;
+            let pos = tile.position;
+            let pos_x = pos % MAZE_WIDTH;
+            let pos_y = pos / MAZE_WIDTH;
+            if pos_x < MAZE_WIDTH - 1 && tile.right {
+                let right = &self.tiles[pos + 1];
+                if right.value.get() > tile.value.get() + 1 {
+                    right.value.set(tile.value.get() + 1);
                     stack.push(right);
                 }
             };
-            if pos.x > 0 && tile.left {
-                let mut left = self.get_tile_at(&Position::new(pos.x - 1, pos.y));
-                if left.value > tile.value + 1 {
-                    left.value = tile.value + 1;
+            if pos_x > 0 && tile.left {
+                let left = &self.tiles[pos - 1];
+                if left.value.get() > tile.value.get() + 1 {
+                    left.value.set(tile.value.get() + 1);
                     stack.push(left);
                 }
             };
-            if pos.y < MAZE_HEIGHT - 1 && tile.lower {
-                let mut lower = self.get_tile_at(&Position::new(pos.x, pos.y + 1));
-                if lower.value > tile.value + 1 {
-                    lower.value = tile.value + 1;
+            if pos_y < MAZE_HEIGHT - 1 && tile.lower {
+                let lower = &self.tiles[pos + MAZE_WIDTH];
+                if lower.value.get() > tile.value.get() + 1 {
+                    lower.value.set(tile.value.get() + 1);
                     stack.push(lower);
                 }
             };
-            if pos.y > 0 && tile.upper {
-                let mut upper = self.get_tile_at(&Position::new(pos.x, pos.y - 1));
-                if upper.value > tile.value + 1 {
-                    upper.value = tile.value + 1;
+            if pos_y > 0 && tile.upper {
+                let upper = &self.tiles[pos - MAZE_WIDTH];
+                if upper.value.get() > tile.value.get() + 1 {
+                    upper.value.set(tile.value.get() + 1);
                     stack.push(upper);
                 }
             };
@@ -57,72 +61,57 @@ impl Maze {
     pub fn solve(&self) -> Vec<Position> {
         todo!()
     }
-
-    fn get_tile_at(&self, pos: &Position) -> Tile {
-        self.tiles.borrow_mut()[pos.x + pos.y * MAZE_WIDTH]
-    }
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct Position {
-    pub x: usize,
-    pub y: usize,
-}
-impl Position {
-    pub fn new(x: usize, y: usize) -> Self {
-        Position { x, y }
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug, Clone)]
 pub struct Tile {
-    pub position: Position,
+    pub position: usize,
     /// if upper is open
     pub upper: bool,
     pub lower: bool,
     pub left: bool,
     pub right: bool,
     /// cell value in flood fill algorithm
-    pub value: usize,
+    pub value: Cell<usize>,
 }
 
 impl Tile {
-    pub fn new(pos: usize, walls: u8) -> Self {
-        let x = pos % MAZE_WIDTH;
-        let y = pos / MAZE_WIDTH;
+    /// create a new tile
+    /// pos: position of the tile. starts from 0, left to right then top to bottom
+    /// opens: openings of the tile. bitwise OR of the four walls. 8 means left is open, 1 means upper is open, 2 for right and 4 for bottom;
+    pub fn new(pos: usize, openings: u8) -> Self {
         Self {
-            position: Position::new(x, y),
-            upper: walls & BIT_UPPER > 0,
-            lower: walls & BIT_LOWER > 0,
-            left: walls & BIT_LEFT > 0,
-            right: walls & BIT_RIGHT > 0,
-            value: MAZE_HEIGHT * MAZE_WIDTH,
+            position: pos,
+            upper: openings & BIT_UPPER > 0,
+            lower: openings & BIT_LOWER > 0,
+            left: openings & BIT_LEFT > 0,
+            right: openings & BIT_RIGHT > 0,
+            value: Cell::new(MAZE_HEIGHT * MAZE_WIDTH),
         }
     }
 }
 
 #[cfg(test)]
 mod test {
-    use std::cell::RefCell;
 
-    use crate::{Position, Tile, Maze};
+    use crate::{Maze, Tile};
 
     #[test]
     fn basic() {
         let tiles = [
-            Tile::new(0,4),
-            Tile::new(1,14),
-            Tile::new(2,8), //goal
-            Tile::new(3,2),
-            Tile::new(4,11),
-            Tile::new(5,8),
+            Tile::new(0, 6),
+            Tile::new(1, 12),
+            Tile::new(2, 4), //goal
+            Tile::new(3, 1), //start
+            Tile::new(4, 3),
+            Tile::new(5, 9),
         ];
-        let maze = Maze{
-            start_point:Position { x: 0, y: 1 },
-            goal:Position { x: 2, y: 0 },
-            tiles:RefCell::new(tiles)
+        let maze = Maze {
+            start_position: 3,
+            goal_position: 2,
+            tiles,
         };
         maze.flood_fill();
-        dbg!(tiles);
+       
     }
 }
