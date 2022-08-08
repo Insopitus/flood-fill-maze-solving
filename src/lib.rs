@@ -59,7 +59,49 @@ impl Maze {
     }
 
     pub fn solve(&self) -> Vec<Position> {
-        todo!()
+        // todo!();
+        let mut solution = Vec::new();
+        solution.push(self.start_position);
+        let mut tile = &self.tiles[self.start_position];
+        while tile.position != self.goal_position {
+            let pos = tile.position;
+            let pos_x = pos % MAZE_WIDTH;
+            let pos_y = pos / MAZE_WIDTH;
+            if pos_x < MAZE_WIDTH - 1 && tile.right {
+                let right = &self.tiles[pos + 1];
+                if right.value.get() == tile.value.get() - 1 {
+                    tile = right;
+                    solution.push(tile.position);
+                    continue;
+                }
+            };
+            if pos_x > 0 && tile.left {
+                let left = &self.tiles[pos - 1];
+                if left.value.get() == tile.value.get() - 1 {
+                    tile = left;
+                    solution.push(tile.position);
+                    continue;
+                }
+            };
+            if pos_y < MAZE_HEIGHT - 1 && tile.lower {
+                let lower = &self.tiles[pos + MAZE_WIDTH];
+                if lower.value.get() == tile.value.get() - 1 {
+                    tile = lower;
+                    solution.push(tile.position);
+                    continue;
+                }
+            };
+            if pos_y > 0 && tile.upper {
+                let upper = &self.tiles[pos - MAZE_WIDTH];
+                if upper.value.get() == tile.value.get() - 1 {
+                    tile = upper;
+                    solution.push(tile.position);
+                    continue;
+                }
+            };
+        };
+        solution
+        
     }
 }
 
@@ -112,6 +154,6 @@ mod test {
             tiles,
         };
         maze.flood_fill();
-       
+        assert_eq!(maze.solve(),vec![3,0,1,4,5,2]);
     }
 }
