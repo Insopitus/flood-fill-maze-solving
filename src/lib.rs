@@ -1,21 +1,23 @@
-use std::cell::Cell;
-
-
-
-const BIT_UPPER: u8 = 1;
-const BIT_RIGHT: u8 = 2;
-const BIT_LOWER: u8 = 4;
-const BIT_LEFT: u8 = 8;
+use std::{str::FromStr, fmt::Display};
 
 /// position of the tile. starts from 0, left to right then top to bottom
-type Position = usize;
+type Index = usize;
+type Coordinate = (usize, usize);
 
+
+/// can be represented as a string like bellow
+/// 
+/// w5h5s10g0#0000011101000011010100100
+/// 
+/// which is a maze whose width is 5, height is 5, start from index 10, goal is at index 0. 
+/// tiles are after `#` where 1s means walls and 0s means pathes
 pub struct Maze {
-    pub width:usize,
-    pub height:usize,
-    pub start_position: Position,
-    pub goal_position: Position,
-    pub tiles: Vec<Tile>,
+    pub width: usize,
+    pub height: usize,
+    pub start_position: Index,
+    pub goal_position: Index,
+    tiles: Vec<Tile>,
+    values:Vec<u32>
 }
 // origin is left top
 impl Maze {
@@ -36,7 +38,7 @@ impl Maze {
                         stack.push(tile);
                     }
                 } else {
-                    right.value.set(Some(tile.value.get().unwrap()+1));
+                    right.value.set(Some(tile.value.get().unwrap() + 1));
                     stack.push(right);
                 }
             };
@@ -48,7 +50,7 @@ impl Maze {
                         stack.push(tile);
                     }
                 } else {
-                    left.value.set(Some(tile.value.get().unwrap()+1));
+                    left.value.set(Some(tile.value.get().unwrap() + 1));
                     stack.push(left);
                 }
             };
@@ -60,7 +62,7 @@ impl Maze {
                         stack.push(tile);
                     }
                 } else {
-                    lower.value.set(Some(tile.value.get().unwrap()+1));
+                    lower.value.set(Some(tile.value.get().unwrap() + 1));
                     stack.push(lower);
                 }
             };
@@ -72,14 +74,14 @@ impl Maze {
                         stack.push(tile);
                     }
                 } else {
-                    upper.value.set(Some(tile.value.get().unwrap()+1));
+                    upper.value.set(Some(tile.value.get().unwrap() + 1));
                     stack.push(upper);
                 }
             };
         }
     }
 
-    pub fn solve(&self) -> Vec<Position> {
+    pub fn solve(&self) -> Vec<Index> {
         // todo!();
         let mut solution = Vec::new();
         solution.push(self.start_position);
@@ -97,7 +99,6 @@ impl Maze {
                         continue;
                     }
                 }
-               
             };
             if pos_x > 0 && tile.left {
                 let left = &self.tiles[pos - 1];
@@ -129,38 +130,43 @@ impl Maze {
                     }
                 }
             };
-        };
+        }
         solution
+    }
+    // get neighboring tiles of a certain on (top, down, left, right), if there's the border of the maze on that direction, returns None
+    pub fn get_neighbors(
+        tile: Index,
+    ) -> (
+        Option<(Index, Tile)>,
+        Option<(Index, Tile)>,
+        Option<(Index, Tile)>,
+        Option<(Index, Tile)>,
+    ) {
+        todo!()
+    }
+    pub fn get_tile_position(&self, index: Index) -> Coordinate {
+        (index % self.width, index / self.width)
+    }
+    pub fn get_tile_index(&self, coord: Coordinate) -> Index {
+        coord.1 * self.width + coord.0
+    }
+}
+
+
+#[derive(Debug)]
+enum MazeParseError{
+    InvalidToken(char),
+    InvalidSize
+}
+impl FromStr for Maze{
+    type Err = MazeParseError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         
     }
 }
-
-#[derive(Debug, Clone)]
-pub struct Tile {
-    pub position: usize,
-    /// if upper is open
-    pub upper: bool,
-    pub lower: bool,
-    pub left: bool,
-    pub right: bool,
-    /// cell value in flood fill algorithm
-    pub value: Cell<Option<usize>>,
-}
-
-impl Tile {
-    /// create a new tile
-    /// pos: position of the tile. starts from 0, left to right then top to bottom
-    /// opens: openings of the tile. bitwise OR of the four walls. 8 means left is open, 1 means upper is open, 2 for right and 4 for bottom;
-    pub fn new(pos: usize, openings: u8) -> Self {
-        Self {
-            position: pos,
-            upper: openings & BIT_UPPER > 0,
-            lower: openings & BIT_LOWER > 0,
-            left: openings & BIT_LEFT > 0,
-            right: openings & BIT_RIGHT > 0,
-            value: Cell::new(None),
-        }
-    }
+enum Tile {
+    Wall,
+    Path,
 }
 
 #[cfg(test)]
@@ -169,24 +175,5 @@ mod test {
     use crate::{Maze, Tile};
 
     #[test]
-    fn basic() {
-        let tiles = [
-            Tile::new(0, 6),
-            Tile::new(1, 12),
-            Tile::new(2, 4), //goal
-            Tile::new(3, 1), //start
-            Tile::new(4, 3),
-            Tile::new(5, 9),
-        ];
-        let maze = Maze {
-            width:3,
-            height:2,
-            start_position: 3,
-            goal_position: 2,
-            tiles:tiles.into(),
-        };
-        maze.flood_fill();
-        let solution = maze.solve();
-        assert_eq!(solution,vec![3,0,1,4,5,2]);
-    }
+    fn basic() {}
 }
