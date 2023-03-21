@@ -169,21 +169,34 @@ impl FromStr for Maze{
                 tokens.push(&chars[start..i]);
                 start = i;
             }
+            if *c=='#'{
+                tokens.push(&chars[start..i]);
+            }
         }
-        dbg!(&tokens);
         let mut tokens = tokens.iter();
         let w_char :String = tokens.next().ok_or_else(||MazeParseError::InvalidToken)?.iter().collect();
         if w_char!="w" {return Err(MazeParseError::InvalidToken)}
         let w_num:usize = tokens.next().ok_or_else(||MazeParseError::InvalidToken)?.iter().collect::<String>().parse().map_err(|_|MazeParseError::InvalidToken)?;
+
+        // dbg!(&w_char,&w_num);
+
         let h_char :String = tokens.next().ok_or_else(||MazeParseError::InvalidToken)?.iter().collect();
         if h_char!="h" {return Err(MazeParseError::InvalidToken)}
         let h_num:usize = tokens.next().ok_or_else(||MazeParseError::InvalidToken)?.iter().collect::<String>().parse().map_err(|_|MazeParseError::InvalidToken)?;
+
+        // dbg!(&h_char,&h_num);
+
         let s_char :String = tokens.next().ok_or_else(||MazeParseError::InvalidToken)?.iter().collect();
         if s_char!="s" {return Err(MazeParseError::InvalidToken)}
         let s_num:usize = tokens.next().ok_or_else(||MazeParseError::InvalidToken)?.iter().collect::<String>().parse().map_err(|_|MazeParseError::InvalidToken)?;
+
+        // dbg!(&s_char,&s_num);
+
         let g_char :String = tokens.next().ok_or_else(||MazeParseError::InvalidToken)?.iter().collect();
         if g_char!="g" {return Err(MazeParseError::InvalidToken)}
         let g_num:usize = tokens.next().ok_or_else(||MazeParseError::InvalidToken)?.iter().collect::<String>().parse().map_err(|_|MazeParseError::InvalidToken)?;
+
+        // dbg!(&g_char,&g_num);
 
         Ok(Self{
             width:w_num,
