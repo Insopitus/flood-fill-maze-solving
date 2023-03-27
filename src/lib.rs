@@ -15,11 +15,20 @@ pub struct Maze {
     pub start_position: usize,
     pub goal_position: usize,
     tiles: Vec<Tile>,
-    values: Vec<u32>,
+    values: Vec<Option<u32>>,
 }
 // origin is left top
 impl Maze {
-    pub fn flood_fill(&self) {
+    pub fn flood_fill(&mut self) {
+        let mut stack: Vec<usize> = vec![self.goal_position];
+        self.values = Vec::with_capacity(self.width * self.height);
+        self.values.fill(None);
+        let values = &mut self.values;
+        // flood fill from the goal position
+        let mut curr_value = 0;
+        while let Some(index) = stack.pop() {
+            values[index] = Some(curr_value);
+        }
         // let mut stack = vec![];
         // let start = &self.tiles[self.goal_position];
         // start.value.set(Some(0));
@@ -156,6 +165,46 @@ impl Maze {
     }
     pub fn get_tile_index(&self, coord: Coordinate) -> usize {
         coord.1 * self.width + coord.0
+    }
+    /// print the maze in terminal
+    pub fn visualize(&self) {
+        let mut output = String::new();
+        for (i, tile) in self.tiles.iter().enumerate() {
+            if i == self.goal_position {
+                output.push('G');
+            } else if i == self.start_position {
+                output.push('S');
+            } else {
+                let c = match tile {
+                    Tile::Wall => '#',
+                    Tile::Path => ' ',
+                };
+                output.push(c);
+            }
+
+            if (i + 1) % self.width == 0 {
+                output.push('\n');
+            }
+        }
+        println!("{output}");
+    }
+    pub fn visulize_values(&self) {
+        // let mut output = String::new();
+        // for (i, v) in self.values.iter().enumerate() {
+        //     if i == self.start_position {
+        //         output.push('S');
+        //     } else {
+        //         let c = match *v {
+        //             Some(v) =>
+        //         };
+        //         output.push(c);
+        //     }
+
+        //     if (i + 1) % self.width == 0 {
+        //         output.push('\n');
+        //     }
+        // }
+        // println!("{output}");
     }
 }
 
@@ -308,6 +357,7 @@ mod test {
     #[test]
     fn parse() {
         let maze = Maze::from_str("w5h5s10g0#0000011101000011010100100").unwrap();
+        maze.visualize();
         assert_eq!(maze.width, 5);
         assert_eq!(maze.height, 5);
         assert_eq!(maze.start_position, 10);
