@@ -52,6 +52,7 @@ impl Maze {
         }
     }
 
+    /// returns None if the maze is unsolvable
     pub fn solve(&self) -> Option<Vec<usize>> {
         // TODO prefers going straight
         // enum Direction {
@@ -63,69 +64,31 @@ impl Maze {
         // let mut dir = Direction::Top;
         let mut solution = vec![self.start_position];
         let mut curr_index = self.start_position;
-        let neighbors = self.get_neighbors(curr_index);
+
         // if start tile is not a path tile, the maze is unsolvable
-        let mut min = self.values[curr_index]?;
-        let mut curr_index = curr_index as isize;
         let index_shift: [isize; 4] = [-(self.width as isize), self.width as isize, -1, 1];
 
-        let mut tile = ();
-        for (n, i) in neighbors.iter().zip(index_shift) {
-            if let Some(n) = n {
-                if *n == Tile::Path {}
+        while curr_index != self.goal_position {
+            let curr_value = self.values[curr_index]?;
+            let mut min = curr_value;
+            let mut min_index = curr_index;
+            let neighbors = self.get_neighbors(curr_index);
+            for (n, shift) in neighbors.iter().zip(index_shift) {
+                if let Some(n) = n {
+                    if *n == Tile::Path {
+                        let index = (curr_index as isize + shift) as usize;
+                        let value = self.values[index]?; // will always has a value
+                        if value < min {
+                            min = value;
+                            min_index = index;
+                        }
+                    }
+                }
             }
+            solution.push(min_index);
+            curr_index = min_index;
         }
-
-        todo!();
-        // let mut solution = Vec::new();
-        // solution.push(self.start_position);
-        // let mut tile = &self.tiles[self.start_position];
-        // while tile.position != self.goal_position {
-        //     let pos = tile.position;
-        //     let pos_x = pos % self.width;
-        //     let pos_y = pos / self.width;
-        //     if pos_x < self.width - 1 && tile.right {
-        //         let right = &self.tiles[pos + 1];
-        //         if let Some(value) = right.value.get() {
-        //             if value + 1 == tile.value.get().unwrap() {
-        //                 solution.push(pos + 1);
-        //                 tile = right;
-        //                 continue;
-        //             }
-        //         }
-        //     };
-        //     if pos_x > 0 && tile.left {
-        //         let left = &self.tiles[pos - 1];
-        //         if let Some(value) = left.value.get() {
-        //             if value + 1 == tile.value.get().unwrap() {
-        //                 solution.push(pos - 1);
-        //                 tile = left;
-        //                 continue;
-        //             }
-        //         }
-        //     };
-        //     if pos_y < self.width - 1 && tile.lower {
-        //         let lower = &self.tiles[pos + self.width];
-        //         if let Some(value) = lower.value.get() {
-        //             if value + 1 == tile.value.get().unwrap() {
-        //                 solution.push(pos + self.width);
-        //                 tile = lower;
-        //                 continue;
-        //             }
-        //         }
-        //     };
-        //     if pos_y > 0 && tile.upper {
-        //         let upper = &self.tiles[pos - self.width];
-        //         if let Some(value) = upper.value.get() {
-        //             if value + 1 == tile.value.get().unwrap() {
-        //                 solution.push(pos - self.width);
-        //                 tile = upper;
-        //                 continue;
-        //             }
-        //         }
-        //     };
-        // }
-        // solution
+        Some(solution)
     }
     // get neighboring tiles of a certain on (top, down, left, right), if there's the border of the maze on that direction, returns None
     pub fn get_neighbors(&self, index: usize) -> [Option<Tile>; 4] {
@@ -156,6 +119,7 @@ impl Maze {
     /// print the maze in terminal
     pub fn visualize(&self) {
         let mut output = String::new();
+        println!();
         for (i, tile) in self.tiles.iter().enumerate() {
             if i == self.goal_position {
                 output.push_str("G ");
@@ -173,7 +137,9 @@ impl Maze {
                 output.push('\n');
             }
         }
+
         println!("{output}");
+        println!();
     }
     pub fn visulize_values(&self) {
         // let mut output = String::new();
@@ -338,21 +304,25 @@ mod test {
     use std::str::FromStr;
 
     use crate::{Maze, Tile};
-
+    const MAZE_STR: &str = "w7h7s7g41#1111111000010111101011000101101110110000001111111";
     #[test]
     fn basic() {
-        let mut maze = Maze::from_str("w5h5s10g0#0000011101000011010100100").unwrap();
+        let mut maze = Maze::from_str(MAZE_STR).unwrap();
         maze.visualize();
         maze.flood_fill();
+        assert_eq!(
+            &maze.solve().unwrap(),
+            &[7, 8, 9, 10, 17, 24, 23, 22, 29, 36, 37, 38, 39, 40, 41,]
+        );
     }
     #[test]
     fn parse() {
-        let maze = Maze::from_str("w5h5s10g0#0000011101000011010100100").unwrap();
-        assert_eq!(maze.width, 5);
-        assert_eq!(maze.height, 5);
-        assert_eq!(maze.start_position, 10);
-        assert_eq!(maze.goal_position, 0);
-        assert_eq!(maze.tiles[0], Tile::Path);
-        assert_eq!(maze.tiles[7], Tile::Wall);
+        let maze = Maze::from_str(MAZE_STR).unwrap();
+        assert_eq!(maze.width, 7);
+        assert_eq!(maze.height, 7);
+        assert_eq!(maze.start_position, 7);
+        assert_eq!(maze.goal_position, 41);
+        assert_eq!(maze.tiles[0], Tile::Wall);
+        assert_eq!(maze.tiles[7], Tile::Path);
     }
 }
