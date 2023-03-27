@@ -1,4 +1,4 @@
-use std::{fmt::Display, str::FromStr};
+use std::str::FromStr;
 
 /// position of the tile. starts from 0, left to right then top to bottom
 type Coordinate = (usize, usize);
@@ -54,7 +54,7 @@ impl Maze {
 
     /// returns None if the maze is unsolvable
     pub fn solve(&self) -> Option<Vec<usize>> {
-        // TODO prefers going straight
+        // TODO prefers going straight when to paths have same steps
         // enum Direction {
         //     Top = 1isize,
         //     Bottom = 2isize,
@@ -92,7 +92,7 @@ impl Maze {
     }
     // get neighboring tiles of a certain on (top, down, left, right), if there's the border of the maze on that direction, returns None
     pub fn get_neighbors(&self, index: usize) -> [Option<Tile>; 4] {
-        let (x, y) = self.get_tile_position(index);
+        let (x, y) = self.get_tile_coord(index);
         let mut neighbors: [Option<Tile>; 4] = [None, None, None, None];
         if x != 0 {
             neighbors[2] = Some(self.tiles[index - 1]);
@@ -110,7 +110,7 @@ impl Maze {
         }
         neighbors
     }
-    pub fn get_tile_position(&self, index: usize) -> Coordinate {
+    pub fn get_tile_coord(&self, index: usize) -> Coordinate {
         (index % self.width, index / self.width)
     }
     pub fn get_tile_index(&self, coord: Coordinate) -> usize {
