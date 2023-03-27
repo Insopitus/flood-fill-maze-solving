@@ -21,74 +21,61 @@ pub struct Maze {
 impl Maze {
     pub fn flood_fill(&mut self) {
         let mut stack: Vec<usize> = vec![self.goal_position];
-        self.values = Vec::with_capacity(self.width * self.height);
-        self.values.fill(None);
-        let values = &mut self.values;
+        self.values = vec![None; self.width * self.height];
         // flood fill from the goal position
-        let mut curr_value = 0;
+        self.values[self.goal_position] = Some(0);
         while let Some(index) = stack.pop() {
-            values[index] = Some(curr_value);
+            let value = self.values[index].unwrap();
+            let neighbors = self.get_neighbors(index);
+            // to avoid underflow
+            let index = index as isize;
+            // the index offsets in different directions
+            let index_shift: [isize; 4] = [-(self.width as isize), self.width as isize, -1, 1];
+            for (neighbor, shift) in neighbors.iter().zip(index_shift) {
+                if let Some(neighbor) = neighbor {
+                    if *neighbor == Tile::Path {
+                        // to avoid underflow
+                        let neighbor_index = (index + shift) as usize;
+                        let neighbor_value = self.values[neighbor_index];
+                        if neighbor_value.is_none() {
+                            self.values[neighbor_index] = Some(value + 1);
+                            stack.push(neighbor_index);
+                        } else if let Some(v) = neighbor_value {
+                            if v > value + 1 {
+                                self.values[neighbor_index] = Some(value + 1);
+                                stack.push(neighbor_index);
+                            }
+                        }
+                    }
+                }
+            }
         }
-        // let mut stack = vec![];
-        // let start = &self.tiles[self.goal_position];
-        // start.value.set(Some(0));
-        // stack.push(start);
-        // while let Some(tile) = stack.pop() {
-        //     let pos = tile.position;
-        //     let pos_x = pos % self.width;
-        //     let pos_y = pos / self.width;
-        //     if pos_x < self.width - 1 && tile.right {
-        //         let right = &self.tiles[pos + 1];
-        //         if let Some(value) = right.value.get() {
-        //             if value + 1 < tile.value.get().unwrap() {
-        //                 tile.value.set(Some(value + 1));
-        //                 stack.push(tile);
-        //             }
-        //         } else {
-        //             right.value.set(Some(tile.value.get().unwrap() + 1));
-        //             stack.push(right);
-        //         }
-        //     };
-        //     if pos_x > 0 && tile.left {
-        //         let left = &self.tiles[pos - 1];
-        //         if let Some(value) = left.value.get() {
-        //             if value + 1 < tile.value.get().unwrap() {
-        //                 tile.value.set(Some(value + 1));
-        //                 stack.push(tile);
-        //             }
-        //         } else {
-        //             left.value.set(Some(tile.value.get().unwrap() + 1));
-        //             stack.push(left);
-        //         }
-        //     };
-        //     if pos_y < self.width - 1 && tile.lower {
-        //         let lower = &self.tiles[pos + self.width];
-        //         if let Some(value) = lower.value.get() {
-        //             if value + 1 < tile.value.get().unwrap() {
-        //                 tile.value.set(Some(value + 1));
-        //                 stack.push(tile);
-        //             }
-        //         } else {
-        //             lower.value.set(Some(tile.value.get().unwrap() + 1));
-        //             stack.push(lower);
-        //         }
-        //     };
-        //     if pos_y > 0 && tile.upper {
-        //         let upper = &self.tiles[pos - self.width];
-        //         if let Some(value) = upper.value.get() {
-        //             if value + 1 < tile.value.get().unwrap() {
-        //                 tile.value.set(Some(value + 1));
-        //                 stack.push(tile);
-        //             }
-        //         } else {
-        //             upper.value.set(Some(tile.value.get().unwrap() + 1));
-        //             stack.push(upper);
-        //         }
-        //     };
-        // }
     }
 
-    pub fn solve(&self) -> Vec<usize> {
+    pub fn solve(&self) -> Option<Vec<usize>> {
+        // TODO prefers going straight
+        // enum Direction {
+        //     Top = 1isize,
+        //     Bottom = 2isize,
+        //     Left = 3isize,
+        //     Right = 4isize,
+        // }
+        // let mut dir = Direction::Top;
+        let mut solution = vec![self.start_position];
+        let mut curr_index = self.start_position;
+        let neighbors = self.get_neighbors(curr_index);
+        // if start tile is not a path tile, the maze is unsolvable
+        let mut min = self.values[curr_index]?;
+        let mut curr_index = curr_index as isize;
+        let index_shift: [isize; 4] = [-(self.width as isize), self.width as isize, -1, 1];
+
+        let mut tile = ();
+        for (n, i) in neighbors.iter().zip(index_shift) {
+            if let Some(n) = n {
+                if *n == Tile::Path {}
+            }
+        }
+
         todo!();
         // let mut solution = Vec::new();
         // solution.push(self.start_position);
@@ -171,15 +158,15 @@ impl Maze {
         let mut output = String::new();
         for (i, tile) in self.tiles.iter().enumerate() {
             if i == self.goal_position {
-                output.push('G');
+                output.push_str("G ");
             } else if i == self.start_position {
-                output.push('S');
+                output.push_str("S ");
             } else {
                 let c = match tile {
-                    Tile::Wall => '#',
-                    Tile::Path => ' ',
+                    Tile::Wall => "[7m  [0m",
+                    Tile::Path => "  ",
                 };
-                output.push(c);
+                output.push_str(c);
             }
 
             if (i + 1) % self.width == 0 {
@@ -240,7 +227,7 @@ impl FromStr for Maze {
         let mut tokens = tokens.iter();
         let w_char: String = tokens
             .next()
-            .ok_or_else(|| MazeParseError::InvalidToken)?
+            .ok_or(MazeParseError::InvalidToken)?
             .iter()
             .collect();
         if w_char != "w" {
@@ -248,7 +235,7 @@ impl FromStr for Maze {
         }
         let w_num: usize = tokens
             .next()
-            .ok_or_else(|| MazeParseError::InvalidToken)?
+            .ok_or(MazeParseError::InvalidToken)?
             .iter()
             .collect::<String>()
             .parse()
@@ -258,7 +245,7 @@ impl FromStr for Maze {
 
         let h_char: String = tokens
             .next()
-            .ok_or_else(|| MazeParseError::InvalidToken)?
+            .ok_or(MazeParseError::InvalidToken)?
             .iter()
             .collect();
         if h_char != "h" {
@@ -266,7 +253,7 @@ impl FromStr for Maze {
         }
         let h_num: usize = tokens
             .next()
-            .ok_or_else(|| MazeParseError::InvalidToken)?
+            .ok_or(MazeParseError::InvalidToken)?
             .iter()
             .collect::<String>()
             .parse()
@@ -276,7 +263,7 @@ impl FromStr for Maze {
 
         let s_char: String = tokens
             .next()
-            .ok_or_else(|| MazeParseError::InvalidToken)?
+            .ok_or(MazeParseError::InvalidToken)?
             .iter()
             .collect();
         if s_char != "s" {
@@ -284,7 +271,7 @@ impl FromStr for Maze {
         }
         let s_num: usize = tokens
             .next()
-            .ok_or_else(|| MazeParseError::InvalidToken)?
+            .ok_or(MazeParseError::InvalidToken)?
             .iter()
             .collect::<String>()
             .parse()
@@ -294,7 +281,7 @@ impl FromStr for Maze {
 
         let g_char: String = tokens
             .next()
-            .ok_or_else(|| MazeParseError::InvalidToken)?
+            .ok_or(MazeParseError::InvalidToken)?
             .iter()
             .collect();
         if g_char != "g" {
@@ -302,7 +289,7 @@ impl FromStr for Maze {
         }
         let g_num: usize = tokens
             .next()
-            .ok_or_else(|| MazeParseError::InvalidToken)?
+            .ok_or(MazeParseError::InvalidToken)?
             .iter()
             .collect::<String>()
             .parse()
@@ -310,7 +297,7 @@ impl FromStr for Maze {
 
         let tiles_res: Vec<_> = tokens
             .next()
-            .ok_or_else(|| MazeParseError::InvalidToken)?
+            .ok_or(MazeParseError::InvalidToken)?
             .iter()
             .map(|c| Tile::parse(*c))
             .collect();
@@ -353,11 +340,14 @@ mod test {
     use crate::{Maze, Tile};
 
     #[test]
-    fn basic() {}
+    fn basic() {
+        let mut maze = Maze::from_str("w5h5s10g0#0000011101000011010100100").unwrap();
+        maze.visualize();
+        maze.flood_fill();
+    }
     #[test]
     fn parse() {
         let maze = Maze::from_str("w5h5s10g0#0000011101000011010100100").unwrap();
-        maze.visualize();
         assert_eq!(maze.width, 5);
         assert_eq!(maze.height, 5);
         assert_eq!(maze.start_position, 10);
